@@ -14,6 +14,7 @@ fastify.get('/user', function (req, reply) {
   )
 })
 
+//Register Service
 fastify.post('/user/:username/:password', (req, reply) => {
     // will return a promise, fastify will send the result automatically
     return fastify.pg.transact(async client => {
@@ -25,6 +26,8 @@ fastify.post('/user/:username/:password', (req, reply) => {
       return id
     })
   })
+
+  //Login Service -- To DO
 
 fastify.listen({ port: 4000 }, err => {
   if (err) throw err
