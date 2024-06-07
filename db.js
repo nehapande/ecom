@@ -1,5 +1,6 @@
 const fastify = require('fastify')()
 const path = require('node:path')
+const fs = require('fs');
 
 fastify.register(require('@fastify/postgres'), {
   connectionString: 'postgres://app_user@localhost/ecom'
@@ -29,7 +30,7 @@ fastify.post('/user/:username/:password', (req, reply) => {
     // will resolve to an id, or reject with an error
     const id = await client.query('INSERT INTO ecom_user(id,password) VALUES($1,$2) RETURNING id', [req.params.username, req.params.password])
 
-    // potentially do something with id
+    // Refresh the Cache
 
     return id
   })
@@ -37,18 +38,22 @@ fastify.post('/user/:username/:password', (req, reply) => {
 
 //Login Service 
 fastify.post('/login/:username/:password', (req, reply) => {
-  // will return a promise, fastify will send the result automatically
-  return fastify.pg.transact(async client => {
-    // will resolve to an id, or reject with an error
-    const id = await client.query('SELECT id FROM ecom_user where id=$1 and  password=$2 RETURNING id', [req.params.username, req.params.password])
-    if (id)
-      return "Logged In"
-    // potentially do something with id
-    else
-      return "Not Found"
 
-  })
-})
+  var obj = JSON.parse(fs.readFileSync('user_cache.json', 'utf8'));
+  if (obj.filter(x => x.id == req.username).length == 1) {
+    const userobk = obj.filter(x => x.id == req.username)[0];
+    if (userobk.password == req.password) {
+      return "Authenticated";
+    }
+    else {
+      return "Passworf Not Correct";
+    }
+  }
+  else if (obj.filter(x => x.id == req.username).length == 0) {
+    return "User Not Found";
+  }
+
+});
 
 //Example Static
 fastify.get('/another/path', function (req, reply) {
@@ -56,6 +61,15 @@ fastify.get('/another/path', function (req, reply) {
 })
 
 fastify.listen({ port: 4000 }, err => {
+  //Load User Cache In Mem or file
+  fastify.pg.transact(async client => {
+    // will resolve to an id, or reject with an error
+    const result = await client.query('SELECT id,password FROM ecom_user');
+    //Save in Cache file
+    fs.writeFileSync("user_cache.json", result);
+
+  });
+
   if (err) throw err
   console.log(`server listening on ${fastify.server.address().port}`)
 })
