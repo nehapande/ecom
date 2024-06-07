@@ -32,7 +32,7 @@ fastify.post('/user/:username/:password', (req, reply) => {
 
     // Refresh the Cache
 
-    return id
+    return id;
   })
 })
 
